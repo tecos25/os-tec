@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام المصروفات الذكي</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background-color: #f8f9fa;
+            --text-color: #2c3e50;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Cairo', Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+        }
+
+        button {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .total-amount {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: center;
+        }
+
+        thead {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+            transform: scale(1.05);
+        }
+
+        .category-icon {
+            font-size: 1.2rem;
+            margin-left: 5px;
+        }
+
+        .timestamp {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 نظام المصروفات الذكي</h1>
+            <p>سجل مصروفاتك اليومية باحترافية</p>
+        </div>
+
+        <div class="stats-card">
+            <div>إجمالي المصروفات</div>
+            <div class="total-amount" id="totalAmount">0.00 ريال</div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <input type="number" id="amount" placeholder="المبلغ (ريال)" step="0.01">
+            </div>
+            
+            <div class="input-group">
+                <select id="category">
+                    <option value="">اختر الفئة</option>
+                    <option value="طعام">🍔 طعام</option>
+                    <option value="مواصلات">🚕 مواصلات</option>
+                    <option value="تسوق">🛍 تسوق</option>
+                    <option value="فواتير">💡 فواتير</option>
+                    <option value="ترفيه">🎮 ترفيه</option>
+                    <option value="أخرى">🔖 أخرى</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="description" placeholder="وصف المصروف (اختياري)">
+            </div>
+
+            <button onclick="addExpense()">➕ إضافة مصروف</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>المبلغ</th>
+                    <th>الفئة</th>
+                    <th>الوصف</th>
+                    <th>التاريخ والوقت</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody id="expensesList">
+                <!-- البيانات تظهر هنا تلقائيا -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+
+        function getCurrentDateTime() {
+            const now = new Date();
+            return now.toLocaleString('ar-SA', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function saveData() {
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            updateTotal();
+        }
+
+        function addExpense() {
+            const amountInput = document.getElementById('amount');
+            const categoryInput = document.getElementById('category');
+            
+            const amount = parseFloat(amountInput.value);
+            const category = categoryInput.value;
+
+            if (!amount || isNaN(amount)) {
+                alert('الرجاء إدخال مبلغ صحيح');
+                return;
+            }
+
+            if (!category) {
+                alert('الرجاء اختيار فئة المصروف');
+                return;
+            }
+
+            const newExpense = {
+                amount: amount,
+                category: category,
+                description: document.getElementById('description').value,
+                timestamp: getCurrentDateTime(),
+                date: new Date().toISOString()
+            };
+
+            expenses.push(newExpense);
+            saveData();
+            updateDisplay();
+            clearForm();
+        }
+
+        function deleteExpense(index) {
+            if (confirm('هل أنت متأكد من حذف هذا المصروف؟')) {
+                expenses.splice(index, 1);
+                saveData();
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            const tbody = document.getElementById('expensesList');
+            tbody.innerHTML = '';
+
+            expenses.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach((expense, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${expense.amount.toFixed(2)} ريال</td>
+                    <td>${expense.category} ${getCategoryIcon(expense.category)}</td>
+                    <td>${expense.description || '-'}</td>
+                    <td>
+                        <div class="timestamp">${expense.timestamp}</div>
+                    </td>
+                    <td>
+                        <button class="delete-btn" onclick="deleteExpense(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateTotal() {
+            const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            document.getElementById('totalAmount').textContent = `${total.toFixed(2)} ريال`;
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                'طعام': '🍔',
+                'مواصلات': '🚕',
+                'تسوق': '🛍',
+                'فواتير': '💡',
+                'ترفيه': '🎮',
+                'أخرى': '🔖'
+            };
+            return `<span class="category-icon">${icons[category] || ''}</span>`;
+        }
+
+        function clearForm() {
+            document.getElementById('amount').value = '';
+            document.getElementById('category').value = '';
+            document.getElementById('description').value = '';
+        }
+
+        // التحميل الأولي للبيانات
+        window.addEventListener('load', () => {
+            updateDisplay();
+            updateTotal();
+        });
+
+        // حفظ البيانات عند إغلاق الصفحة
+        window.addEventListener('beforeunload', saveData);
+    </script>
+</body>
+</html>
